@@ -1,4 +1,4 @@
-package httpadapter
+package api
 
 import (
 	"fmt"
@@ -11,6 +11,6 @@ func (s *server) addHealthRoutes() {
 
 func handleStatus() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "%s", "OK")
+		fmt.Fprintf(w, "{%s : %s}", "status", "ok")
 	}
 }

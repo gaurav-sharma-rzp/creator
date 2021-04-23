@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/private/creator/httpadapter"
+	"github.com/private/creator/api"
 )
 
 func main() {
 	router := mux.NewRouter()
-	server := httpadapter.NewServer(router)
+	server := api.NewServer(router)
 	server.RegisterRoutes()
 
 	log.Println("Listening...")

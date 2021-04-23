@@ -1,4 +1,4 @@
-package httpadapter
+package api
 
 import (
 	"fmt"
@@ -6,7 +6,7 @@ import (
 )
 
 func (s *server) addFloraRoutes() {
-	s.Router.HandleFunc("/create", handleFloraCreate()).Methods("GET")
+	s.Router.HandleFunc("flora/create", handleFloraCreate()).Methods("GET")
 }
 
 func handleFloraCreate() http.HandlerFunc {
