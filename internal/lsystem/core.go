@@ -1,19 +1,26 @@
 package lsystem
 
+import "github.com/private/creator/pkg/lsystem"
+
+func Expand(grammar Grammar, steps int) []string {
+	// need better name to distinguish between pkg and internal l-system
+	return lsystem.ExpandRecursively(&grammar, steps)
+}
+
 type Grammar struct {
-	initiator []string            `json:"initiator"`
-	rules     map[string][]string `json:"rules"`
-	alphabet  []string            `json:"alphabet"`
+	Initiator []string
+	Rules     map[string][]string
+	Alphabet  []string
 }
 
-func (g *Grammar) Initiator() []string {
-	return g.initiator
+func (g *Grammar) GetInitiator() []string {
+	return g.Initiator
 }
 
-func (g *Grammar) Alphabets() []string {
-	return g.alphabet
+func (g *Grammar) GetAlphabet() []string {
+	return g.Alphabet
 }
 
-func (g *Grammar) Rules() map[string][]string {
-	return g.rules
+func (g *Grammar) GetRules() map[string][]string {
+	return g.Rules
 }

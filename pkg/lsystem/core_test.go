@@ -12,15 +12,15 @@ type grammar struct {
 	alphabet  []string
 }
 
-func (tg *grammar) Initiator() []string {
+func (tg *grammar) GetInitiator() []string {
 	return tg.initiator
 }
 
-func (tg *grammar) Alphabets() []string {
+func (tg *grammar) GetAlphabet() []string {
 	return tg.alphabet
 }
 
-func (tg *grammar) Rules() map[string][]string {
+func (tg *grammar) GetRules() map[string][]string {
 	return tg.rules
 }
 

@@ -6,14 +6,14 @@ type Grammar struct {
 	alphabet  []string            `json:"alphabet"`
 }
 
-func (g *Grammar) Initiator() []string {
+func (g *Grammar) GetInitiator() []string {
 	return g.initiator
 }
 
-func (g *Grammar) Alphabets() []string {
+func (g *Grammar) GetAlphabet() []string {
 	return g.alphabet
 }
 
-func (g *Grammar) Rules() map[string][]string {
+func (g *Grammar) GetRules() map[string][]string {
 	return g.rules
 }

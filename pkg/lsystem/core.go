@@ -4,11 +4,11 @@ package lsystem
 // If rule is not defined for a alphabet than it is not changed in the expand process
 // It returns the final symbol after recursively expanding and any error encountered
 func ExpandRecursively(grammar Grammar, steps int) []string {
-	symbol := grammar.Initiator()
+	symbol := grammar.GetInitiator()
 	if steps == 0 || len(symbol) == 0 {
 		return symbol
 	}
-	rules := grammar.Rules()
+	rules := grammar.GetRules()
 	var nextSymbol []string
 	for i := 0; i < steps; i++ {
 		for _, alphabet := range symbol {

@@ -4,11 +4,11 @@ package lsystem
 // Any model that needs to use l-system for generating and expanding symbols needs to implement this interface
 type Grammar interface {
 	// Initiator returns the starting symbol to be used for generating the l-system
-	Initiator() []string
+	GetInitiator() []string
 
 	// Alphabets returns all the valid alphabets that this grammar supports
-	Alphabets() []string
+	GetAlphabet() []string
 
 	// Rules returns the set of rules to follow while expanding the symbol
-	Rules() map[string][]string
+	GetRules() map[string][]string
 }

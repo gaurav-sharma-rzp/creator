@@ -6,7 +6,7 @@ import (
 )
 
 func (s *server) addHealthRoutes() {
-	s.Router.HandleFunc("/status", handleStatus())
+	s.Router.HandleFunc("/status", handleStatus()).Methods(http.MethodGet)
 }
 
 func handleStatus() http.HandlerFunc {

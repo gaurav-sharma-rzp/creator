@@ -17,4 +17,5 @@ func NewServer(router *mux.Router) *server {
 func (s *server) RegisterRoutes() {
 	s.addHealthRoutes()
 	s.addFloraRoutes()
+	s.addLSystemRoutes()
 }

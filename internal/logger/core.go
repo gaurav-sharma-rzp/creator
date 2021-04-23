@@ -23,13 +23,13 @@ func init() {
 }
 
 func Info(v ...interface{}) {
-	infoLogger.Println(v)
+	infoLogger.Println(v...)
 }
 
 func Warn(v ...interface{}) {
-	warningLogger.Println(v)
+	warningLogger.Println(v...)
 }
 
 func Error(v ...interface{}) {
-	errorLogger.Println(v)
+	errorLogger.Println(v...)
 }

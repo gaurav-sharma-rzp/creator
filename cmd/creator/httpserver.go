@@ -12,7 +12,7 @@ func main() {
 	router := mux.NewRouter()
 	server := api.NewServer(router)
 	server.RegisterRoutes()
-
-	log.Println("Listening...")
-	http.ListenAndServe(":3000", router)
+	port := ":3000"
+	log.Println("listening on port ", port)
+	http.ListenAndServe(port, router)
 }
