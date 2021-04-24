@@ -152,9 +152,9 @@ func handleLSystemExpand() http.HandlerFunc {
 }
 
 type ExpandGrammarRequest struct {
-	Grammar lsystem.Grammar
-	Steps   int
+	Grammar lsystem.Grammar `json:"grammar"`
+	Steps   int             `json:"steps"`
 }
 type ExpandGrammarResponse struct {
-	Result []string
+	Result []string `json:"result"`
 }
