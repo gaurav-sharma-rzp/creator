@@ -136,6 +136,7 @@ func handleLSystemExpand() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		logger.Info("request", fmt.Sprintf("%v", request))
 		result := lsystem.Expand(request.Grammar, request.Steps)
 		response := ExpandGrammarResponse{Result: result}
 		// todo there should be a better way for decoding and encoding request response and should be abstracted out to helper functions
@@ -146,7 +147,7 @@ func handleLSystemExpand() http.HandlerFunc {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(response)
-		logger.Info("grammar", fmt.Sprintf("%v", request))
+		logger.Info("response sent")
 
 	}
 }
