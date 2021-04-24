@@ -1,4 +1,4 @@
-package api
+package httpadapter
 
 import (
 	"github.com/gorilla/mux"

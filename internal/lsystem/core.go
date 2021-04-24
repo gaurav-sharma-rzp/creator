@@ -3,7 +3,7 @@ package lsystem
 import "github.com/private/creator/pkg/lsystem"
 
 func Expand(grammar Grammar, steps int) []string {
-	// need better name to distinguish between pkg and internal l-system
+	// todo need better name to distinguish between pkg and internal l-system
 	return lsystem.ExpandRecursively(&grammar, steps)
 }
 
