@@ -1,13 +1,13 @@
 package httpadapter
 
 import (
+	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
-	"strings"
+
+	"github.com/qmuntal/gltf"
+	"github.com/qmuntal/gltf/modeler"
 
 	"github.com/private/creator/internal/logger"
 
@@ -16,115 +16,192 @@ import (
 
 func (s *server) addLSystemRoutes() {
 	s.Router.HandleFunc("/lsystem/expand", handleLSystemExpand()).Methods(http.MethodPost)
+	s.Router.HandleFunc("/gltf", handlegltf()).Methods(http.MethodGet)
 }
 
-type Person struct {
-	Name string
-	Age  int
-}
+func handlegltf() http.HandlerFunc {
+	//return personCreate
+	return func(w http.ResponseWriter, r *http.Request) {
+		//simpleGltf := "{\n  \"scenes\" : [\n    {\n      \"nodes\" : [ 0 ]\n    }\n  ],\n\n  \"nodes\" : [\n    {\n      \"mesh\" : 0\n    }\n  ],\n\n  \"meshes\" : [\n    {\n      \"primitives\" : [ {\n        \"attributes\" : {\n          \"POSITION\" : 1\n        },\n        \"indices\" : 0,\n        \"material\" : 0\n      } ]\n    }\n  ],\n\n  \"buffers\" : [\n    {\n      \"uri\" : \"data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=\",\n      \"byteLength\" : 44\n    }\n  ],\n  \"bufferViews\" : [\n    {\n      \"buffer\" : 0,\n      \"byteOffset\" : 0,\n      \"byteLength\" : 6,\n      \"target\" : 34963\n    },\n    {\n      \"buffer\" : 0,\n      \"byteOffset\" : 8,\n      \"byteLength\" : 36,\n      \"target\" : 34962\n    }\n  ],\n  \"accessors\" : [\n    {\n      \"bufferView\" : 0,\n      \"byteOffset\" : 0,\n      \"componentType\" : 5123,\n      \"count\" : 3,\n      \"type\" : \"SCALAR\",\n      \"max\" : [ 2 ],\n      \"min\" : [ 0 ]\n    },\n    {\n      \"bufferView\" : 1,\n      \"byteOffset\" : 0,\n      \"componentType\" : 5126,\n      \"count\" : 3,\n      \"type\" : \"VEC3\",\n      \"max\" : [ 1.0, 1.0, 0.0 ],\n      \"min\" : [ 0.0, 0.0, 0.0 ]\n    }\n  ],\n\n  \"materials\" : [\n    {\n      \"pbrMetallicRoughness\": {\n        \"baseColorFactor\": [ 1.000, 0.766, 0.336, 1.0 ],\n        \"metallicFactor\": 0.5,\n        \"roughnessFactor\": 0.1\n      }\n    }\n  ],\n  \"asset\" : {\n    \"version\" : \"2.0\"\n  }\n}\n"
+		//w.Header().Set("Content-Type", "application/json")
+		//w.Write([]byte(simpleGltf))
+		//logger.Info("response sent")
 
-func personCreate(w http.ResponseWriter, r *http.Request) {
-	// If the Content-Type header is present, check that it has the value
-	// application/json. Note that we are using the gddo/httputil/header
-	// package to parse and extract the value here, so the check works
-	// even if the client includes additional charset or boundary
-	// information in the header.
-	//if r.Header.Get("Content-Type") != "" {
-	//	value, _ := header.ParseValueAndParams(r.Header, "Content-Type")
-	//	if value != "application/json" {
-	//		msg := "Content-Type header is not application/json"
-	//		http.Error(w, msg, http.StatusUnsupportedMediaType)
-	//		return
-	//	}
-	//}
-
-	// Use http.MaxBytesReader to enforce a maximum read of 1MB from the
-	// response body. A request body larger than that will now result in
-	// Decode() returning a "http: request body too large" error.
-	r.Body = http.MaxBytesReader(w, r.Body, 1048576)
-
-	// Setup the decoder and call the DisallowUnknownFields() method on it.
-	// This will cause Decode() to return a "json: unknown field ..." error
-	// if it encounters any extra unexpected fields in the JSON. Strictly
-	// speaking, it returns an error for "keys which do not match any
-	// non-ignored, exported fields in the destination".
-	dec := json.NewDecoder(r.Body)
-	dec.DisallowUnknownFields()
-
-	var p lsystem.Grammar
-	err := dec.Decode(&p)
-	if err != nil {
-		var syntaxError *json.SyntaxError
-		var unmarshalTypeError *json.UnmarshalTypeError
-
-		switch {
-		// Catch any syntax errors in the JSON and send an error message
-		// which interpolates the location of the problem to make it
-		// easier for the client to fix.
-		case errors.As(err, &syntaxError):
-			msg := fmt.Sprintf("Request body contains badly-formed JSON (at position %d)", syntaxError.Offset)
-			http.Error(w, msg, http.StatusBadRequest)
-
-		// In some circumstances Decode() may also return an
-		// io.ErrUnexpectedEOF error for syntax errors in the JSON. There
-		// is an open issue regarding this at
-		// https://github.com/golang/go/issues/25956.
-		case errors.Is(err, io.ErrUnexpectedEOF):
-			msg := fmt.Sprintf("Request body contains badly-formed JSON")
-			http.Error(w, msg, http.StatusBadRequest)
-
-		// Catch any type errors, like trying to assign a string in the
-		// JSON request body to a int field in our Person struct. We can
-		// interpolate the relevant field name and position into the error
-		// message to make it easier for the client to fix.
-		case errors.As(err, &unmarshalTypeError):
-			msg := fmt.Sprintf("Request body contains an invalid value for the %q field (at position %d)", unmarshalTypeError.Field, unmarshalTypeError.Offset)
-			http.Error(w, msg, http.StatusBadRequest)
-
-		// Catch the error caused by extra unexpected fields in the request
-		// body. We extract the field name from the error message and
-		// interpolate it in our custom error message. There is an open
-		// issue at https://github.com/golang/go/issues/29035 regarding
-		// turning this into a sentinel error.
-		case strings.HasPrefix(err.Error(), "json: unknown field "):
-			fieldName := strings.TrimPrefix(err.Error(), "json: unknown field ")
-			msg := fmt.Sprintf("Request body contains unknown field %s", fieldName)
-			http.Error(w, msg, http.StatusBadRequest)
-
-		// An io.EOF error is returned by Decode() if the request body is
-		// empty.
-		case errors.Is(err, io.EOF):
-			msg := "Request body must not be empty"
-			http.Error(w, msg, http.StatusBadRequest)
-
-		// Catch the error caused by the request body being too large. Again
-		// there is an open issue regarding turning this into a sentinel
-		// error at https://github.com/golang/go/issues/30715.
-		case err.Error() == "http: request body too large":
-			msg := "Request body must not be larger than 1MB"
-			http.Error(w, msg, http.StatusRequestEntityTooLarge)
-
-		// Otherwise default to logging the error and sending a 500 Internal
-		// Server Error response.
-		default:
-			log.Println(err.Error())
-			http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		doc := gltf.NewDocument()
+		doc.Meshes = []*gltf.Mesh{{
+			Name: "Pyramid",
+			Primitives: []*gltf.Primitive{{
+				Indices: gltf.Index(modeler.WriteIndices(doc, []uint16{0, 2, 1, 2, 3, 1, 2, 6, 7, 2, 7, 3, 6, 4, 5, 7, 6, 5, 4, 0, 1, 1, 5, 4, 2, 0, 6, 6, 0, 4, 3, 7, 5, 3, 5, 1})),
+				Attributes: map[string]uint32{
+					gltf.POSITION: modeler.WritePosition(doc, [][3]float32{{0, 0, 0}, {0, 10, 0}, {0, 0, 10}, {0, 10, 10}, {20, 0, 0}, {20, 10, 0}, {20, 0, 10}, {20, 10, 10}}),
+					gltf.COLOR_0:  modeler.WriteColor(doc, [][3]uint8{{255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {0, 255, 255}, {255, 0, 0}, {0, 255, 0}, {0, 0, 255}, {0, 255, 255}}),
+					gltf.NORMAL:   modeler.WriteNormal(doc, [][3]float32{{0, 0, 10}, {0, 10, 0}, {0, 0, 10}, {0, 10, 10}, {20, 0, 0}, {20, 10, 0}, {20, 0, 10}, {20, 10, 10}}),
+					//gltf.TEXCOORD_0: modeler.WriteTextureCoord(doc),
+				},
+			}},
+		}}
+		doc.Nodes = []*gltf.Node{
+			{Name: "Root", Children: []uint32{1, 2, 3}, Rotation: [4]float32{0.0, 0.0, 0.0, 1.0}, Scale: [3]float32{1.0, 1.0, 1.0}, Translation: [3]float32{0.0, 0.0, 0.0}},
+			{Name: "Mesh", Rotation: [4]float32{0.0, 0.0, 0.0, 1.0}, Scale: [3]float32{1.0, 1.0, 1.0}, Translation: [3]float32{0.0, 0.0, 0.0}},
+			{Name: "Cube", Mesh: gltf.Index(0), Rotation: [4]float32{0.0, 0.0, 0.0, 1.0}, Scale: [3]float32{1.0, 1.0, 1.0}, Translation: [3]float32{0.0, 0.0, 0.0}},
+			{Name: "Texture Group", Rotation: [4]float32{0.0, 0.0, 0.0, 1.0}, Scale: [3]float32{1.0, 1.0, 1.0}, Translation: [3]float32{0.0, 0.0, 0.0}},
 		}
-		return
-	}
+		doc.Textures = []*gltf.Texture{
+			{
+				Extensions: nil,
+				Extras:     nil,
+				Name:       "",
+				Sampler:    gltf.Index(0),
+				Source:     gltf.Index(0),
+			},
+		}
+		doc.Samplers = []*gltf.Sampler{
+			{
+				Extensions: nil,
+				Extras:     nil,
+				Name:       "",
+				MagFilter:  9729,
+				MinFilter:  0,
+				WrapS:      0,
+				WrapT:      0,
+			},
+		}
+		doc.Materials = []*gltf.Material{
+			{
+				Name: "Default",
+				PBRMetallicRoughness: &gltf.PBRMetallicRoughness{
+					BaseColorFactor: &[4]float32{
+						0.800000011920929,
+						0.800000011920929,
+						0.800000011920929,
+						1.0,
+					},
+					BaseColorTexture: nil,
+					MetallicFactor:   gltf.Float(0.100000001490116),
+					RoughnessFactor:  gltf.Float(0.990000005960464),
+				},
+			},
+		}
+		//Samplers: []*gltf.Sampler{{WrapS: gltf.WrapRepeat, WrapT: gltf.WrapRepeat}},
+		//Scene:    gltf.Index(0),
+		doc.Scenes = []*gltf.Scene{{Name: "Root Scene", Nodes: []uint32{0}}}
+		for _, buf := range doc.Buffers {
+			buf.EmbeddedResource()
+		}
 
-	// Call decode again, using a pointer to an empty anonymous struct as
-	// the destination. If the request body only contained a single JSON
-	// object this will return an io.EOF error. So if we get anything else,
-	// we know that there is additional data in the request body.
-	err = dec.Decode(&struct{}{})
-	if err != io.EOF {
-		msg := "Request body must only contain a single JSON object"
-		http.Error(w, msg, http.StatusBadRequest)
-		return
-	}
+		w.Header().Set("Content-Type", "application/json")
+		var buf bytes.Buffer
+		enc := gltf.NewEncoder(&buf)
+		enc.AsBinary = false
 
-	fmt.Fprintf(w, "Person: %+v", p)
+		enc.Encode(doc)
+		//http.Post("http://example.com/upload", "model/gltf+json", &buf)
+		//json.NewEncoder(w).Encode(buf)
+		xx, err := buf.WriteTo(w)
+		fmt.Println(xx, err)
+
+		//doc := gltf.NewDocument()
+		//attrs, _ := modeler.WriteAttributesInterleaved(doc, modeler.Attributes{
+		//	Position: [][3]float32{{0, 0, 0}, {0, 10, 0}, {0, 0, 10}},
+		//	Color:    [][3]uint8{{255, 0, 0}, {0, 255, 0}, {0, 0, 255}},
+		//})
+		//doc.Meshes = []*gltf.Mesh{{
+		//	Name: "Pyramid",
+		//	Primitives: []*gltf.Primitive{{
+		//		Indices:    gltf.Index(modeler.WriteIndices(doc, []uint16{0, 1, 2})),
+		//		Attributes: attrs,
+		//	}},
+		//}}
+		//fmt.Printf("%+v\n", doc.Buffers[0])
+		//res := base64.StdEncoding.EncodeToString(doc.Buffers[0].Data)
+		//fmt.Println(res)
+		//uriData := fmt.Sprintf("data:application/octet-stream;base64,%s", res)
+		//doc.Buffers[0].URI = uriData
+		//w.Header().Set("Content-Type", "application/json")
+		//var buf bytes.Buffer
+		//enc := gltf.NewEncoder(&buf)
+		//enc.AsBinary = false
+		//enc.Encode(doc)
+		////http.Post("http://example.com/upload", "model/gltf+json", &buf)
+		////json.NewEncoder(w).Encode(buf)
+		//xx, err := buf.WriteTo(w)
+		//fmt.Println(xx, err)
+		////gbuf := gltf.Buffer{
+		////	Extensions: nil,
+		////	Extras:     nil,
+		////	Name:       "",
+		////	URI:        "",
+		////	ByteLength: 44,
+		////
+		////	Data:       nil,
+		////}
+		////uriDataRaw := base64.StdEncoding.EncodeToString([]byte{97, 110, 121, 32, 99, 97, 114, 110, 97, 108, 32, 112, 108, 101, 97, 115})
+		////res, err := base64.StdEncoding.DecodeString("data:application/octet-stream;base64,AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=")
+		////fmt.Println(res)
+		////res, err = base64.RawStdEncoding.DecodeString("AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=")
+		////fmt.Println(res)
+		////bits := binary.LittleEndian.Uint64(res)
+		////fmt.Println(bits)
+		////floatRes := math.Float64frombits(bits)
+		////fmt.Println(floatRes)
+		////uriData := fmt.Sprintf("data:application/octet-stream;base64,%s", "AAABAAIAAAAAAAAAAAAAAAAAAAAAAIA/AAAAAAAAAAAAAAAAAACAPwAAAAA=")
+		////doc := &gltf.Document{
+		////	Accessors: []*gltf.Accessor{
+		////		{BufferView: gltf.Index(0), ByteOffset: 0, ComponentType: gltf.ComponentUshort, Count: 3, Type: gltf.AccessorScalar, Max: []float32{2}, Min: []float32{0}},
+		////		{BufferView: gltf.Index(1), ByteOffset: 0, ComponentType: gltf.ComponentFloat, Count: 3, Max: []float32{1.0, 1.0, 0.0}, Min: []float32{0.0, 0.0, 0.0}, Type: gltf.AccessorVec3},
+		////		//{BufferView: gltf.Index(2), ComponentType: gltf.ComponentFloat, Count: 24, Type: gltf.AccessorVec3},
+		////		//{BufferView: gltf.Index(3), ComponentType: gltf.ComponentFloat, Count: 24, Type: gltf.AccessorVec4},
+		////		//{BufferView: gltf.Index(4), ComponentType: gltf.ComponentFloat, Count: 24, Type: gltf.AccessorVec2},
+		////	},
+		////	Asset: gltf.Asset{
+		////		Version:   "2.0",
+		////		Generator: "FBX2glTF",
+		////	},
+		////	BufferViews: []*gltf.BufferView{
+		////		{Buffer: 0, ByteLength: 6, ByteOffset: 0, Target: 34963},
+		////		{Buffer: 0, ByteLength: 36, ByteOffset: 8, Target: 34962},
+		////	},
+		////	Buffers: []*gltf.Buffer{{ByteLength: 44, URI: uriData}},
+		////	//Materials: []*gltf.Material{{
+		////	//	Name: "Default", AlphaMode: gltf.AlphaOpaque, AlphaCutoff: gltf.Float(0.5),
+		////	//	PBRMetallicRoughness: &gltf.PBRMetallicRoughness{BaseColorFactor: &[4]float32{0.8, 0.8, 0.8, 1}, MetallicFactor: gltf.Float(0.1), RoughnessFactor: gltf.Float(0.99)},
+		////	//}},
+		////	Meshes: []*gltf.Mesh{
+		////		{Name: "Cube", Primitives: []*gltf.Primitive{
+		////			{
+		////				Indices: gltf.Index(0),
+		////				//Material:   gltf.Index(0),
+		////				//Mode:       gltf.PrimitiveTriangles,
+		////				Attributes: map[string]uint32{
+		////					gltf.POSITION: 1,
+		////					gltf.COLOR_0:  3,
+		////					//gltf.NORMAL:     2,
+		////					//gltf.TEXCOORD_0: 4,
+		////				},
+		////			},
+		////		},
+		////		},
+		////	},
+		////	Nodes: []*gltf.Node{
+		////		{Name: "Cube", Mesh: gltf.Index(0)},
+		////	},
+		////	//Samplers: []*gltf.Sampler{{WrapS: gltf.WrapRepeat, WrapT: gltf.WrapRepeat}},
+		////	//Scene:    gltf.Index(0),
+		////	Scenes: []*gltf.Scene{{Name: "Root Scene", Nodes: []uint32{0}}},
+		////}
+		////
+		////w.Header().Set("Content-Type", "application/json")
+		////var buf bytes.Buffer
+		////enc := gltf.NewEncoder(&buf)
+		////enc.AsBinary = false
+		////enc.Encode(doc)
+		//////http.Post("http://example.com/upload", "model/gltf+json", &buf)
+		//////json.NewEncoder(w).Encode(buf)
+		////xx, err := buf.WriteTo(w)
+		////fmt.Println(xx, err)
+		////logger.Info("response sent")
+
+	}
 }
 
 func handleLSystemExpand() http.HandlerFunc {

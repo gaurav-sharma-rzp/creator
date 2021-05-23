@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -14,5 +15,6 @@ func main() {
 	server.RegisterRoutes()
 	port := ":3000"
 	log.Println("listening on port ", port)
-	http.ListenAndServe(port, router)
+	err := http.ListenAndServe(port, router)
+	fmt.Println(err)
 }
